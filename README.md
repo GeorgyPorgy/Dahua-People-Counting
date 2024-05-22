@@ -1,5 +1,5 @@
 # Dahua SDK
-A module for Dahua IP Cameras to retrieve the People counting statistics through the RPC2 interface.
+A module for Dahua IP Cameras to retrieve the people counting statistics through the RPC2 interface.
 
 ## Info
 
@@ -23,44 +23,34 @@ Some basic functions
 # Get the current time on the device
 print(dahua.current_time())
 
-# Set display to 4 grids with first view group
-dahua.set_split(mode=4, view=1)
-
-# Make a raw RPC request to get serial number
-print(dahua.request(method="magicBox.getSerialNo"))
+# Get serial number
+print("SN : " + (dahua.request(method="magicBox.getSerialNo"))['params']['sn'])
 ```
 
 Get ANPR details
 ```py
-# Get the ANPR Plate Numbers by using the following
-# Get the object id
-object_id = dahua.get_traffic_info() 
+# Get the people counting statistics for defined area and specific period of time by using the following
+# Get the statistics object id
+object_id = dahua.get_people_counting_info() 
 
-# Use the object id to find the Plate Numbers
-dahua.start_find(object_id=object_id) 
+# Request the total count of the statistics stored for the defined period of time
+print("\nTotal number of statistics stored data : ", 
+	dahua.start_find_statistics_data(object_id, 
+	"2024-05-13 00:00:00", 
+	"2024-05-15 23:59:59", 
+	1) ) 
 
-# Find and dump the Plate Numbers
-response = json.dumps(dahua.do_find(object_id=object_id)) 
+# Get statistics list
+r = dahua.do_find_statistics_data(object_id)
+print(*r, sep = "\n")
+
+# Release token
+dahua.stop_find_statistics_data(object_id)
+
+dahua.logout() 
 ```
 
-
-Listening for event's like video motion, tamper detection
-```py
-# Attach an event. 
-# NOTE : Check your camera model for possible events.
-# Detaching an event is not yet supported.
-print(dahua.attach_event(["VideoMotion"]))
-
-
-# Create a callback to receive the data
-def callback(data):
-    print("Data = {}".format(data))
-
-print(dahua.listen_events(callback))
-
-# NOTE: Currently everything happens in a main thread. Will be moved to a thread in later update
-```
 
 ## Credits
 
-Forked from [this gist](https://gist.github.com/gxfxyz/48072a72be3a169bc43549e676713201) and added ANPR and event listeners. Thanks [G.X.F.](https://gist.github.com/gxfxyz) for your contribution.
+Forked from [this gist](https://github.com/naveenrobo/dahua-ip-cam-sdk.git) and added filtering and retrieving statistics for the count of people who have passed through the defined zone.

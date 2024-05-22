@@ -3,22 +3,26 @@
 
 """
 Basic Dahua RPC wrapper.
-Forked from https://gist.github.com/48072a72be3a169bc43549e676713201.git
-Added ANPR Plate Number extraction by Naveen Sakthivel <https://github.com/naveenrobo>
+Forked from https://github.com/naveenrobo/dahua-ip-cam-sdk.git
+Added filtering and retrieving statistics for the count of people who have passed the defined zone
 Example:
     from dahua_rpc import DahuaRpc
     dahua = DahuaRpc(host="192.168.1.10", username="admin", password="password")
     dahua.login()
   # Get the current time on the device
-    print(dahua.current_time())
-  # Set display to 4 grids with first view group
-    dahua.set_split(mode=4, view=1)
-  # Make a raw RPC request to get serial number
-    print(dahua.request(method="magicBox.getSerialNo"))
-  # Get the ANPR Plate Numbers by using the following
-    object_id = dahua.get_traffic_info() # Get the object id
-    dahua.startFind(object_id=object_id) # Use the object id to find the Plate Numbers
-    response = json.dumps(dahua.do_find(object_id=object_id)) # Extract the Plate Numbers
+    dahua.current_time()
+  # Get serial number
+    dahua.request(method="magicBox.getSerialNo")
+  # Get the people counting statistics for defined area and specific period of time by using the following
+    object_id = dahua.get_people_counting_info() # Get the object id
+  # Get the total count of the statistics stored for the defined period of time
+    totalCount = dahua.start_find_statistics_data(object_id, StartTime, EndTime, AreaID) # Use the object id to find the stored statisics data
+  # Get statistics list
+    list = dahua.do_find_statistics_data(object_id) # Use the object id to get the statisics data
+  # Release token
+    dahua.stop_find_statistics_data(object_id) # Use the object id to release filtered data
+  # Logout 
+    dahua.logout()
 Dependencies:
   pip install requests
 """
@@ -43,6 +47,9 @@ class DahuaRpc(object):
         self.s = requests.Session()
         self.session_id = None
         self.id = 0
+        self.token = 0
+        self.totalCount = 0
+
 
     def request(self, method, params=None, object_id=None, extra=None, url=None):
         """Make a RPC request."""
@@ -95,8 +102,8 @@ class DahuaRpc(object):
         params = {'userName': self.username,
                   'password': pass_hash,
                   'clientType': "Web3.0",
-                  'authorityType': "Default",
-                  'passwordType': "Default"}
+                  'loginType': "Direct",
+                  'authorityType': "Default"}
         r = self.request(method=method, params=params, url=url)
 
         if r['result'] is False:
@@ -293,7 +300,86 @@ class DahuaRpc(object):
 
         if r['result'] is False:
             raise RequestError(str(r))
+        
+    def get_people_counting_info(self):
+        method = "videoStatServer.factory.instance"
 
+        params = {'channel' : 0}
+
+        r = self.request(method=method, params=params)
+        
+        if type(r['result']):
+            return r['result']
+        else:
+            raise RequestError(str(r))
+    
+    def start_find_statistics_data(self, object_id, StartTime, EndTime, AreaID):
+        method = "videoStatServer.startFind"                
+
+        params={
+            'condition': {
+                'StartTime' : StartTime, 
+                'EndTime' : EndTime, 
+                'Granularity' : "Hour", 
+                'RuleType' : "NumberStat", 
+                'PtzPresetId' : 0, 
+                'AreaID' : [AreaID]
+            }
+        }
+
+        r = self.request(method=method, params=params,object_id=object_id)
+
+        if r['result'] is False:
+            raise RequestError(str(r))
+        else:
+            self.token = r['params']['token']
+            self.totalCount = r['params']['totalCount']
+
+            return self.totalCount
+        
+    def do_find_statistics_data(self, object_id):
+        method = "videoStatServer.doFind"
+
+        params = {
+            'token':self.token, 
+            'beginNumber' : 0, 
+            'count' : self.totalCount
+        }
+
+        r = self.request(method=method, params=params,object_id=object_id)
+
+        if r['result'] is False:
+            raise RequestError(str(r))
+        else:            
+            return r['params']['info']            
+        
+    def stop_find_statistics_data(self, object_id):
+        method = "videoStatServer.stopFind"
+
+        params = { 'token' : self.token }
+
+        r = self.request(method=method, params=params,object_id=object_id)
+
+        if r['result'] is False:
+            raise RequestError(str(r))
+        else:
+            self.token = 0
+            self.totalCount = 0
+            return
+    
+    def logout(self):
+        method = "global.logout"
+
+        params = {}
+
+        r = self.request(method=method, params=params)
+
+        if r['result'] is False:
+            raise RequestError(str(r))
+        else:
+            self.session_id = None
+            self.id = 0
+            return
 
 class LoginError(Exception):
     pass
