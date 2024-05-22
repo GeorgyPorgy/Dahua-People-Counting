@@ -1,5 +1,5 @@
 # Dahua SDK
-SDK for Dahua IP Cameras to extract Plate Numbers and listening of events like Video Motion, Camera Tampering which are support by camera.
+A module for Dahua IP Cameras to retrieve the People counting statistics through the RPC2 interface.
 
 ## Info
 
