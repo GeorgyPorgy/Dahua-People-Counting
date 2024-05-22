@@ -1,5 +1,5 @@
 # Dahua SDK
-A module for Dahua IP Cameras to retrieve the people counting statistics through the RPC2 interface.
+A module for Dahua IP cameras to retrieve the people counting statistics through the RPC2 interface.
 
 ## Info
 
@@ -23,28 +23,29 @@ Some basic functions
 # Get the current time on the device
 print(dahua.current_time())
 
-# Get serial number
+# Get the serial number
 print("SN : " + (dahua.request(method="magicBox.getSerialNo"))['params']['sn'])
 ```
 
-Get ANPR details
+Get statistics details
 ```py
-# Get the people counting statistics for defined area and specific period of time by using the following
-# Get the statistics object id
+# Get the people counting statistics for defined area and specific period of time by using the following steps
+
+# Get the statistics object ID
 object_id = dahua.get_people_counting_info() 
 
 # Request the total count of the statistics stored for the defined period of time
 print("\nTotal number of statistics stored data : ", 
 	dahua.start_find_statistics_data(object_id, 
-	"2024-05-13 00:00:00", 
-	"2024-05-15 23:59:59", 
-	1) ) 
+	StartTime = "2024-05-13 00:00:00", 
+	EndTime = "2024-05-15 23:59:59", 
+	AreaID = 1) ) 
 
 # Get statistics list
 r = dahua.do_find_statistics_data(object_id)
 print(*r, sep = "\n")
 
-# Release token
+# Release the token
 dahua.stop_find_statistics_data(object_id)
 
 dahua.logout() 
@@ -53,4 +54,4 @@ dahua.logout()
 
 ## Credits
 
-Forked from [this gist](https://github.com/naveenrobo/dahua-ip-cam-sdk.git) and added filtering and retrieving statistics for the count of people who have passed through the defined zone.
+Forked from [this gist](https://github.com/naveenrobo/dahua-ip-cam-sdk.git) and added filtering and retrieving statistics for the count of people who have passed through the zone.
